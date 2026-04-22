@@ -1,0 +1,14 @@
+=Structural Design Pattern
+*refactoring,class-composition,interface-design,legacy-integration
+
+?Pattern Name
+#Intent
+?Problem Definition
+?Solution Definition
+#Motivation
+?Use Case Scenario
+#Structure
+?Diagrams
+?Participants
+?Interactions
+?Example Code

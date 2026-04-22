@@ -1,0 +1,14 @@
+=Creational Design Pattern
+*system-architecture,object-oriented,api-design,lifecycle-management
+
+?Pattern Name
+#Intent
+?Problem Definition
+?Solution Definition
+#Motivation
+?Use Case Scenario
+#Structure
+?Diagrams
+?Participants
+?Interactions
+?Example Code

@@ -1,14 +1,14 @@
-object oriented, python, c++, c#, c, java, javascript
-^ could be simple tags so users can easily tell what each template is used for
+=Behavioral Design Pattern
+*event-handling,communication-protocols,state-management,algorithms
 
-? Pattern Name
-Intent
-? Problem Definition
-? Solution Definition
-Motivation
-? Use Case Scenario
-Structure
-? Diagrams
-? Participants
-? Interactions
-? Example Code
+?Pattern Name
+#Intent
+?Problem Definition
+?Solution Definition
+#Motivation
+?Use Case Scenario
+#Structure
+?Diagrams
+?Participants
+?Interactions
+?Example Code
