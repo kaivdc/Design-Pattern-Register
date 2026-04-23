@@ -3,14 +3,15 @@ import datetime
 import os
 import uuid
 
+
 class PatternRecord:
-    def __init__(self, title, tags, filepath, category, created_at, record_id=uuid.uuid4()):
+    def __init__(self, title, tags, filepath, category, date, record_id=uuid.uuid4()):
         self.record_id = record_id
         self.title = title
         self.tags = tags
         self.filepath = filepath
         self.category = category
-        self.created_at = created_at
+        self.date = date
 
     @classmethod
     def from_dict(cls, data):
@@ -20,7 +21,7 @@ class PatternRecord:
             tags=data.get('tags', []),
             filepath=data.get('filepath'),
             category=data.get('category'),
-            created_at=data.get('created_at')
+            date=data.get('date')
         )
 
     def to_dict(self):
@@ -30,79 +31,64 @@ class PatternRecord:
             'tags': self.tags,
             'filepath': self.filepath,
             'category': self.category,
-            'created_at': str(self.created_at)
+            'date': str(self.date)
         }
 
+# HELPER METHODS BELOW
+# ----------------------------------------------------------------------------------------------------
 
 def load_registry(file_path):
     if not os.path.exists(file_path):
-        print("Registry file not found. Starting with an empty list.")
         return []
 
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             raw_data = json.load(f)
 
-            patterns = [PatternRecord.from_dict(item) for item in raw_data]
+            # Check if list
+            if isinstance(raw_data, dict):
+                raw_data = [raw_data]
 
-            return patterns
+            return [PatternRecord.from_dict(pattern) for pattern in raw_data]
 
-    except json.JSONDecodeError:
-        print("Error: registry.json is corrupted or using invalid formatting.")
+    except (json.JSONDecodeError, TypeError):
+        print("Error in utils.registry_utils.load_registry: \n    registry.json is corrupted or invalid.")
         return []
 
-
 def write_registry(patterns, file_path):
-    # Create the directory if it doesn't exist
     directory = os.path.dirname(file_path)
     if directory and not os.path.exists(directory):
         os.makedirs(directory)
 
-    # Convert all patterns in the list to dictionaries
-    dumpable_list = [pattern.to_dict() for pattern in patterns]
+    # Ensure we are dealing with a list of objects
+    if not isinstance(patterns, list):
+        patterns = [patterns]
 
-    # Write the list of dicts to file
+    dumpable_list = []
+    for item in patterns:
+
+        # Check if the item is a list and process internal lists in event of nested lists
+        if isinstance(item, list):
+            for sub_item in item:
+                dumpable_list.append(sub_item.to_dict() if hasattr(sub_item, 'to_dict') else sub_item)
+
+        # Check if we are iterating over our correct object
+        elif hasattr(item, 'to_dict'):
+            dumpable_list.append(item.to_dict())
+
+        # If already formatted as a dict, append without formatting
+        else:
+            dumpable_list.append(item)
+
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(dumpable_list, f, indent=4)
 
-def create_design_pattern_from_template(template, directory):
-    # Prompt user for title, tags, and autogenerate document_content
-    print(f"\nCreating new Design Pattern from Template: {template.title}")
-    user_title = input("Enter Pattern Title: ").strip()
-    raw_tags = input("Enter Tags (comma separated): ")
-    user_tags = [t.strip() for t in raw_tags.split(',')]
+def empty_registry(directory):
+    patterns = load_registry(directory)
 
-    # Generate document content from non-template specific information
+    for pattern in patterns:
+        os.remove(pattern.filepath)
 
-    document_content = [f"TITLE: {user_title}", f"TAGS: {', '.join(user_tags)}",
-                        f"DATE: {str(datetime.datetime.now())}\n"]
+    patterns = []
 
-    # loop through each section and each question prompting user and appending the question and answer to document_content
-    for section in template.sections:
-        print(f"\nNow filling out {section.name}")
-        document_content.append(f"#{section.name}\n")
-        document_content.append("=" * len(section.name))
-
-        for question in section.questions:
-            answer = input(f"Please fill out the section: {question}: ").strip()
-            document_content.append(f"##{question}\n")
-            document_content.append(f"{answer}\n")
-
-    if not os.path.exists(directory):
-        print(f"ERROR: Directory not found. Creating new directory at {directory}.")
-        os.makedirs(directory)
-
-    safe_name = user_title.lower().replace(" ", "_")
-    filepath = (os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "registry", f"{safe_name}.txt"))
-
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write("\n".join(document_content))
-
-    # Return PatternRecord instance for read/write to registry/registry.json
-    return PatternRecord(
-        title=user_title,
-        tags=user_tags,
-        filepath=filepath,
-        category=template.title,
-        created_at=datetime.datetime.now().isoformat()
-    )
+    write_registry(patterns, directory)
