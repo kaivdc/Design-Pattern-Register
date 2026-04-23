@@ -59,3 +59,6 @@ class TestTemplateParser(unittest.TestCase):
         for i in range(len(expected.sections)):
             self.assertEqual(result.sections[i].name, expected.sections[i].name)
             self.assertEqual(result.sections[i].questions, expected.sections[i].questions)
+
+if __name__ == "__main__":
+    unittest.main()
