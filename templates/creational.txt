@@ -8,7 +8,7 @@
 #Motivation
 ?Use Case Scenario
 #Structure
-?Diagrams
+!Diagrams
 ?Participants
 ?Interactions
 ?Example Code

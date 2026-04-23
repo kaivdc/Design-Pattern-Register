@@ -69,6 +69,19 @@ class TestRegistryManager(unittest.TestCase):
         mock_remove.assert_called_once_with(self.sample_record.filepath)
         self.assertEqual(len(self.manager.patterns), 0)
 
+    @patch('shutil.rmtree')
+    @patch('os.path.isdir', return_value=True)
+    @patch('os.path.exists', return_value=True)
+    @patch('os.remove')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_empty_registry_with_images(self, mock_file, mock_remove, mock_exists, mock_isdir, mock_rmtree):
+        self.manager.patterns = [self.sample_record]
+        self.manager.empty_registry()
+
+        # Assert against truth both were removed
+        mock_remove.assert_called()
+        mock_rmtree.assert_called()
+
 class TestTemplateInteraction(unittest.TestCase):
 
     @patch('builtins.input')

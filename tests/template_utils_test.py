@@ -26,7 +26,7 @@ class TestTemplateParser(unittest.TestCase):
             "*test, validation, assurance\n"
             "#Intent\n"
             "?Problem Definition\n"
-            "?Solution Definition\n"
+            "!UML Diagram\n"
             "#Motivation\n"
             "?Use Case Scenario"
         )
@@ -44,8 +44,8 @@ class TestTemplateParser(unittest.TestCase):
             title="Unit Test Pattern",
             tags=["test", "validation", "assurance"],
             sections=[
-                TemplateSection(name="Intent", questions=["Problem Definition", "Solution Definition"]),
-                TemplateSection(name="Motivation", questions=["Use Case Scenario"])
+                TemplateSection(name="Intent", questions=["?Problem Definition", "!UML Diagram"]),
+                TemplateSection(name="Motivation", questions=["?Use Case Scenario"])
             ]
         )
 
@@ -59,6 +59,7 @@ class TestTemplateParser(unittest.TestCase):
         for i in range(len(expected.sections)):
             self.assertEqual(result.sections[i].name, expected.sections[i].name)
             self.assertEqual(result.sections[i].questions, expected.sections[i].questions)
+            self.assertIn("!UML Diagram", result.sections[0].questions)
 
 if __name__ == "__main__":
     unittest.main()
