@@ -64,3 +64,45 @@ def write_registry(patterns, file_path):
     # Write the list of dicts to file
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(dumpable_list, f, indent=4)
+
+def create_design_pattern_from_template(template, directory):
+    # Prompt user for title, tags, and autogenerate document_content
+    print(f"\nCreating new Design Pattern from Template: {template.title}")
+    user_title = input("Enter Pattern Title: ").strip()
+    raw_tags = input("Enter Tags (comma separated): ")
+    user_tags = [t.strip() for t in raw_tags.split(',')]
+
+    # Generate document content from non-template specific information
+
+    document_content = [f"TITLE: {user_title}", f"TAGS: {', '.join(user_tags)}",
+                        f"DATE: {str(datetime.datetime.now())}\n"]
+
+    # loop through each section and each question prompting user and appending the question and answer to document_content
+    for section in template.sections:
+        print(f"\nNow filling out {section.name}")
+        document_content.append(f"#{section.name}\n")
+        document_content.append("=" * len(section.name))
+
+        for question in section.questions:
+            answer = input(f"Please fill out the section: {question}: ").strip()
+            document_content.append(f"##{question}\n")
+            document_content.append(f"{answer}\n")
+
+    if not os.path.exists(directory):
+        print(f"ERROR: Directory not found. Creating new directory at {directory}.")
+        os.makedirs(directory)
+
+    safe_name = user_title.lower().replace(" ", "_")
+    filepath = (os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "registry", f"{safe_name}.txt"))
+
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write("\n".join(document_content))
+
+    # Return PatternRecord instance for read/write to registry/registry.json
+    return PatternRecord(
+        title=user_title,
+        tags=user_tags,
+        filepath=filepath,
+        category=template.title,
+        created_at=datetime.datetime.now().isoformat()
+    )

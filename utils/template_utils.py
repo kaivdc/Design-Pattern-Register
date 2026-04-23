@@ -67,10 +67,3 @@ def load_templates(directory):
     for file_path in file_paths:
         parsed_data = parse_template(file_path)
 
-def create_design_pattern_from_template(json_data):
-    data = json.loads(json_data)
-    new_data = {}
-    for section in data["sections"]:
-        print(f"Now filling out section {section['name']}")
-        for question in section["questions"]:
-            input(f"Please enter the contents for the {question['name']} section : \n")

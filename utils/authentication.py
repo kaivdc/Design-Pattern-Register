@@ -1,1 +1,0 @@
-# Login/Logout functionality
