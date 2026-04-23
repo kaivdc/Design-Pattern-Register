@@ -1,1 +1,0 @@
-# perhaps class for each design pattern in each template, else simple data storage entity

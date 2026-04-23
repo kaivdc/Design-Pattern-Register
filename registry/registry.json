@@ -1,0 +1,26 @@
+[
+    {
+        "record_id": "f63b54e8-0603-42b8-a819-ba1efcce7a02",
+        "title": "Test Pattern",
+        "tags": [
+            "Testing",
+            "Validation",
+            "Confirmation"
+        ],
+        "filepath": "test.txt",
+        "category": "Test",
+        "created_at": "2026-04-22 20:44:47.996303"
+    },
+    {
+        "record_id": "f63b54e8-0603-42b8-a819-ba1efcce7a02",
+        "title": "Test Pattern 2",
+        "tags": [
+            "Testing 2",
+            "Validation 2",
+            "Confirmation 2"
+        ],
+        "filepath": "test_2.txt",
+        "category": "Test_2",
+        "created_at": "2026-04-22 20:44:47.996316"
+    }
+]
