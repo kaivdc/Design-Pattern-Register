@@ -118,40 +118,37 @@ class RegistryManager:
             return False
 
     def delete_pattern(self, identifier):
-        target_pattern = None
 
-        if isinstance(identifier, PatternRecord):
-            target_pattern = identifier
+        id_to_match = str(identifier.record_id) if isinstance(identifier, PatternRecord) else str(identifier)
 
-        elif isinstance(identifier, str):
-            if self.is_valid_uuid(identifier):
-                target_pattern = next((p for p in self.patterns if str(p.record_id) == identifier), None)
+        target_pattern = next((p for p in self.patterns if str(p.record_id) == id_to_match), None)
 
-            if not target_pattern:
-                target_pattern = next((p for p in self.patterns if p.title == identifier), None)
+        if not target_pattern and not self.is_valid_uuid(id_to_match):
+            target_pattern = next((p for p in self.patterns if p.title == id_to_match), None)
 
         if not target_pattern:
-            print(f"ERROR in utils.registry_utils.delete_pattern: \n    Delete failed: No pattern found matching identifier '{identifier}'.")
+            print(f"ERROR: No pattern found matching '{id_to_match}'.")
             return False
 
         try:
             if os.path.exists(target_pattern.filepath):
                 os.remove(target_pattern.filepath)
 
-            safe_name = target_pattern.title.lower().replace(" ", "_")
+            safe_name = os.path.splitext(os.path.basename(target_pattern.filepath))[0]
             image_dir = os.path.join(self.directory, "images", safe_name)
 
             if os.path.exists(image_dir):
                 shutil.rmtree(image_dir)
 
-            self.patterns = [p for p in self.patterns if p != target_pattern]
+            self.patterns = [p for p in self.patterns if str(p.record_id) != str(target_pattern.record_id)]
+
             self.write_registry()
 
             print(f"Successfully deleted pattern: {target_pattern.title}")
             return True
 
         except Exception as e:
-            print(f"ERROR in utils.registry_utils.delete_pattern: \n     During deletion: {e}.")
+            print(f"ERROR: During deletion: {e}.")
             return False
 
     def delete_multiple_patterns(self, identifiers):
