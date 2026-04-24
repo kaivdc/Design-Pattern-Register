@@ -104,8 +104,31 @@ if nav == "Pattern Registry":
 
             with expander_col:
                 with st.expander(f"{p.title}"):
-                    # ... [Keep your existing expander rendering code here] ...
                     st.write(f"**Tags:** {', '.join(p.tags)}")
+                    st.write(f"**Date:** {p.date}")
+                    st.write(f"**Category:** {p.category}")
+                    st.divider()
+
+                    # Display the actual file contents
+                    content = read_pattern_file(p.filepath)
+
+                    for line in content.split('\n'):
+                        if line.startswith('!['):
+                            try:
+                                # Extract path and alt text from Markdown: ![alt](path)
+                                rel_path = line.split('(')[1].split(')')[0]
+                                img_abs_path = os.path.abspath(os.path.join("registry", rel_path))
+
+                                if os.path.exists(img_abs_path):
+                                    st.image(img_abs_path, caption=line.split('[')[1].split(']')[0])
+                                else:
+                                    st.warning(f"Image not found at: {img_abs_path}")
+                            except Exception:
+                                st.markdown(line)
+                        else:
+                            st.markdown(line)
+
+                    st.divider()
                     st.caption(f"Path: {p.filepath}")
 
             with delete_col:
