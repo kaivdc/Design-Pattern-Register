@@ -1,1 +1,32 @@
-[]
+[
+    {
+        "record_id": "4dc10266-7fd5-4a6d-851b-1cb2e91819c5",
+        "title": "b",
+        "tags": [
+            "a"
+        ],
+        "filepath": "C:\\Users\\kairo\\PycharmProjects\\Design_Pattern_Register\\registry\\b.txt",
+        "category": "Behavioral Design Pattern",
+        "date": "2026-04-23 19:43:04.924608"
+    },
+    {
+        "record_id": "7e3bdc5c-4b22-4bd0-93de-5907610549ad",
+        "title": "c",
+        "tags": [
+            "a"
+        ],
+        "filepath": "C:\\Users\\kairo\\PycharmProjects\\Design_Pattern_Register\\registry\\c.txt",
+        "category": "Behavioral Design Pattern",
+        "date": "2026-04-23 19:43:07.076687"
+    },
+    {
+        "record_id": "0491ff2f-18d2-4072-9936-8bc82166d559",
+        "title": "d",
+        "tags": [
+            "a"
+        ],
+        "filepath": "C:\\Users\\kairo\\PycharmProjects\\Design_Pattern_Register\\registry\\d.txt",
+        "category": "Behavioral Design Pattern",
+        "date": "2026-04-23 19:43:09.391853"
+    }
+]

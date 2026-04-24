@@ -8,53 +8,38 @@ if 'manager' not in st.session_state:
     st.session_state.manager = RegistryManager()
 if 'templates' not in st.session_state:
     st.session_state.templates = load_templates("templates")
+if 'selected_patterns' not in st.session_state:
+    st.session_state.selected_patterns = set()
 
 manager = st.session_state.manager
 templates = st.session_state.templates
 
 st.sidebar.title("Design Architect v1.0")
-nav = st.sidebar.radio("Navigation", ["View Registry", "View Templates", "Create New Design Pattern"])
+nav = st.sidebar.radio("Navigation", ["Pattern Registry", "Template Gallery", "Create New Design Pattern"])
 
 # PAGE 1 - VIEW REGISTRY
-if nav == "View Registry":
+if nav == "Pattern Registry":
     st.header("Pattern Registry")
 
-    # Autopopulate Categories from Templates
+    # Data preparation
     all_categories = sorted(list(set(t.title for t in templates)))
-
-    # Autopopulate Tags from existing Patterns
-    all_tags = set()
-    for p in manager.patterns:
-        for tag in p.tags:
-            all_tags.add(tag)
-    all_tags = sorted(list(all_tags))
+    all_tags = sorted(list(set(tag for p in manager.patterns for tag in p.tags)))
 
     with st.expander("Filter & Sort Options", expanded=True):
         col1, col2, col3 = st.columns(3)
-
-        # Sort by column
         with col1:
             sort_option = st.selectbox("Sort By:", ["Most Recent", "Alphabetical"])
             category_filter = st.multiselect("Filter by Category:", all_categories)
-
-        # Filter by column
         with col2:
             tag_filter = st.multiselect("Filter by Tags:", all_tags)
             search_query = st.text_input("Search Title:")
 
-        # Operations column
-        with col3:
-            clear_option = st.button(label="Clear All Records", on_click=manager.empty_registry, type="primary")
-
-
+    # Filtering Logic-
     filtered_list = list(manager.patterns)
-
     if category_filter:
         filtered_list = [p for p in filtered_list if p.category in category_filter]
-
     if tag_filter:
         filtered_list = [p for p in filtered_list if any(tag in p.tags for tag in tag_filter)]
-
     if search_query:
         filtered_list = [p for p in filtered_list if search_query.lower() in p.title.lower()]
 
@@ -63,41 +48,76 @@ if nav == "View Registry":
     else:
         filtered_list.sort(key=lambda x: x.date, reverse=True)
 
+    # Selection Logic
+    has_selection = len(st.session_state.selected_patterns) > 0
+
+    # Rendering Operations
+    with col3:
+        st.button(label="Clear All Records", on_click=manager.empty_registry, type="primary")
+
+        if st.button(label="Delete Selected Records", type="primary", disabled=not has_selection):
+            manager.delete_multiple_patterns(list(st.session_state.selected_patterns))
+            st.session_state.selected_patterns = set()
+            st.rerun()
+
+        # Prepare ZIP data only if needed
+        bulk_zip_data = manager.get_multiple_patterns_zip(
+            list(st.session_state.selected_patterns)) if has_selection else b""
+
+        st.download_button(
+            label="Download Selected (.zip)",
+            data=bulk_zip_data,
+            file_name="bulk_design_patterns.zip",
+            mime="application/zip",
+            key="bulk_download_btn",
+            disabled=not has_selection
+        )
+
+    # List Rendering
     st.markdown(f"**Showing {len(filtered_list)} patterns**")
 
     if not filtered_list:
         st.info("No patterns match your current filters.")
     else:
         for p in filtered_list:
-            with st.expander(f"[{p.category}] {p.title}"):
-                st.write(f"**Tags:** {', '.join(p.tags)}")
-                st.write(f"**Created:** {p.date}")
+            p_id = p.record_id
 
-                st.divider()
+            check_col, expander_col, delete_col, download_col = st.columns([1, 20, 2, 2])
 
-                # Display the actual file contents
-                content = read_pattern_file(p.filepath)
+            with check_col:
+                is_checked = p_id in st.session_state.selected_patterns
 
-                for line in content.split('\n'):
-                    if line.startswith('!['):
-                        try:
-                            rel_path = line.split('(')[1].split(')')[0]
-                            img_abs_path = os.path.abspath(os.path.join("registry", rel_path))
-
-                            if os.path.exists(img_abs_path):
-                                st.image(img_abs_path, caption=line.split('[')[1].split(']')[0])
-                            else:
-                                st.warning(f"Image not found at: {img_abs_path}")
-                        except Exception:
-                            st.markdown(line)
+                def toggle_select(pid=p_id):
+                    if st.session_state[f"select_{pid}"]:
+                        st.session_state.selected_patterns.add(pid)
                     else:
-                        st.markdown(line)
+                        st.session_state.selected_patterns.discard(pid)
 
-                # Provide a path reference at the bottom
-                st.caption(f"Path: {p.filepath}")
+
+                st.checkbox(
+                    "",
+                    value=is_checked,
+                    key=f"select_{p_id}",
+                    on_change=toggle_select,
+                    label_visibility="collapsed"
+                )
+
+            with expander_col:
+                with st.expander(f"{p.title}"):
+                    # ... [Keep your existing expander rendering code here] ...
+                    st.write(f"**Tags:** {', '.join(p.tags)}")
+                    st.caption(f"Path: {p.filepath}")
+
+            with delete_col:
+                st.button("🗑️", key=f"del_{p_id}", on_click=manager.delete_pattern, args=(p_id,), type="primary")
+
+            with download_col:
+                z_data = manager.get_pattern_zip(p_id)
+                if z_data:
+                    st.download_button("⬇️", data=z_data, file_name=f"{p.title}.zip", key=f"dl_{p_id}")
 
 # PAGE 2 - VIEW TEMPLATES
-elif nav == "View Templates":
+elif nav == "Template Gallery":
     st.header("Template Gallery")
     st.write("Browse the underlying structures used to generate the design patterns.")
 

@@ -3,10 +3,14 @@ from datetime import datetime
 import os
 import shutil
 import uuid
+import io
+import zipfile
+from uuid import UUID
+
 
 class PatternRecord:
-    def __init__(self, title, tags, filepath, category, date, record_id=uuid.uuid4()):
-        self.record_id = record_id
+    def __init__(self, title, tags, filepath, category, date, record_id=None):
+        self.record_id = record_id if record_id else uuid.uuid4()
         self.title = title
         self.tags = tags
         self.filepath = filepath
@@ -106,6 +110,138 @@ class RegistryManager:
         # Overwrite registry file with empty json
         self.write_registry()
 
+    def is_valid_uuid(self, value):
+        try:
+            UUID(str(value))
+            return True
+        except ValueError:
+            return False
+
+    def delete_pattern(self, identifier):
+        target_pattern = None
+
+        if isinstance(identifier, PatternRecord):
+            target_pattern = identifier
+
+        elif isinstance(identifier, str):
+            if self.is_valid_uuid(identifier):
+                target_pattern = next((p for p in self.patterns if str(p.record_id) == identifier), None)
+
+            if not target_pattern:
+                target_pattern = next((p for p in self.patterns if p.title == identifier), None)
+
+        if not target_pattern:
+            print(f"ERROR in utils.registry_utils.delete_pattern: \n    Delete failed: No pattern found matching identifier '{identifier}'.")
+            return False
+
+        try:
+            if os.path.exists(target_pattern.filepath):
+                os.remove(target_pattern.filepath)
+
+            safe_name = target_pattern.title.lower().replace(" ", "_")
+            image_dir = os.path.join(self.directory, "images", safe_name)
+
+            if os.path.exists(image_dir):
+                shutil.rmtree(image_dir)
+
+            self.patterns = [p for p in self.patterns if p != target_pattern]
+            self.write_registry()
+
+            print(f"Successfully deleted pattern: {target_pattern.title}")
+            return True
+
+        except Exception as e:
+            print(f"ERROR in utils.registry_utils.delete_pattern: \n     During deletion: {e}.")
+            return False
+
+    def delete_multiple_patterns(self, identifiers):
+        for identifier in identifiers:
+            self.delete_pattern(identifier)
+
+    def get_pattern_zip(self, record_id):
+        pattern = next((p for p in self.patterns if p.record_id == record_id), None)
+        if not pattern:
+            return None
+
+        # Create a buffer to hold the ZIP data
+        buf = io.BytesIO()
+
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            if os.path.exists(pattern.filepath):
+                zf.write(pattern.filepath, arcname=os.path.basename(pattern.filepath))
+
+            safe_name = os.path.splitext(os.path.basename(pattern.filepath))[0]
+            image_dir = os.path.join(self.directory, "images", safe_name)
+
+            if os.path.exists(image_dir):
+                for root, _, files in os.walk(image_dir):
+                    for file in files:
+                        img_path = os.path.join(root, file)
+                        # Store images in image folder in zipfile
+                        zf.write(img_path, arcname=os.path.join("images", file))
+
+        return buf.getvalue()
+
+    def get_multiple_patterns_zip(self, record_ids):
+        # Create the in-memory buffer
+        buf = io.BytesIO()
+
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for rid in record_ids:
+                # Find the pattern object
+                pattern = next((p for p in self.patterns if str(p.record_id) == str(rid)), None)
+                if not pattern:
+                    continue
+
+                pattern_folder = pattern.title.lower().replace(" ", "_")
+
+                if os.path.exists(pattern.filepath):
+                    zf.write(
+                        pattern.filepath,
+                        arcname=os.path.join(pattern_folder, os.path.basename(pattern.filepath))
+                    )
+
+                safe_name = os.path.splitext(os.path.basename(pattern.filepath))[0]
+                image_dir = os.path.join(self.directory, "images", safe_name)
+
+                if os.path.exists(image_dir):
+                    for root, _, files in os.walk(image_dir):
+                        for file in files:
+                            img_path = os.path.join(root, file)
+                            zf.write(
+                                img_path,
+                                arcname=os.path.join(pattern_folder, "images", file)
+                            )
+
+        return buf.getvalue()
+
+    def download_pattern(self, identifier):
+        target_pattern = None
+
+        if isinstance(identifier, PatternRecord):
+            target_pattern = identifier
+        elif isinstance(identifier, str):
+            if self.is_valid_uuid(identifier):
+                target_pattern = next((p for p in self.patterns if str(p.record_id) == identifier), None)
+            if not target_pattern:
+                target_pattern = next((p for p in self.patterns if p.title == identifier), None)
+
+        if not target_pattern:
+            print(f"ERROR: No pattern found matching '{identifier}'.")
+            return None
+
+        try:
+            if os.path.exists(target_pattern.filepath):
+                with open(target_pattern.filepath, "r", encoding="utf-8") as f:
+                    return f.read()
+            else:
+                print(f"ERROR: File not found at {target_pattern.filepath}")
+                return None
+
+        except Exception as e:
+            print(f"ERROR reading file: {e}")
+            return None
+
     def create_design_pattern_from_ui(self, template, user_title, user_tags, ui_answers):
         base_dir = os.path.abspath("registry")
         safe_name = user_title.lower().replace(" ", "_")
@@ -137,14 +273,14 @@ class RegistryManager:
                         for uploaded_file in val:
                             if hasattr(uploaded_file, 'name'):
                                 ext = os.path.splitext(uploaded_file.name)[1]
-                                img_filename = f"{section.name.replace(' ', '_')}_{index}{ext}"
+                                img_filename = f"{section.name.replace(' ', '_')}_{display_question}_{index}{ext}"
                                 index += 1
                                 img_path = os.path.join(image_sub_dir, img_filename)
 
                                 with open(img_path, "wb") as f:
                                     f.write(uploaded_file.getbuffer())
 
-                                document_content.append(f"![{display_question}]({self.directory}\\images\\{safe_name}\\{img_filename})\n")
+                                document_content.append(f"![{display_question}-{safe_name}-{img_filename}]({self.directory}\\images\\{safe_name}\\{img_filename})\n")
 
                 # Text case
                 elif question.startswith('?'):
@@ -160,6 +296,7 @@ class RegistryManager:
             f.write("\n".join(document_content))
 
         new_record = PatternRecord(
+            record_id=uuid.uuid4(),
             title=user_title,
             tags=[t.strip() for t in user_tags.split(',')],
             filepath=filepath,
